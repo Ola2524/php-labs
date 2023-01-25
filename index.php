@@ -1,90 +1,49 @@
 <?php
+    require_once("autoload.php");
 
-    $name_error = "";
-    $email_error = "";
-    $message_error = "";
-    $redirect_message = "";
+    $pages = array("details");
+    $page = isset($_GET["view"]) && in_array($_GET["view"],$pages)?$_GET["view"]:0;
 
-    if(count($_POST) > 0){
-        $name = $_POST["name"];
-        $email = $_POST["email"];
-        $message = $_POST["message"];
-        
-        if (empty($name)) {
-            $name_error = "Name must be not empty";
-        }
-        elseif(strlen($name) > 100){
-            $name_error = "Name must be less than 100 character";            
-        }
-        if(empty($email)){
-            $email_error = "Email must be not empty";
-        }
-        elseif (!filter_var($email,FILTER_VALIDATE_EMAIL)) {
-            $email_error = "Email is not valid";   
-        }
-        if(empty($message)){
-            $message_error = "Message must be not empty";
-        }
-        elseif (strlen($message) > 255) {
-            $message_error = "Message must be less than 255 character";   
-        }
-        else{
-            $redirect_message = "
-            <h1>Thank you for contacting Us</h1><br>
-            <p><b>Name: </b>".$name."</p>
-            <p><b>Email: </b>".$email."</p>
-            <p><b>Message: </b>".$message."</p>
-            ";
-        }
-    }
+    $items = new MYSQLHandler("items");
+    $first_record = ((isset($_GET["start"]) && is_numeric($_GET["start"]) && $_GET["start"]>=0))?$_GET["start"]:5;
+    $common = "index.php?view=index.php&start=";
+    $next = ($first_record + NUMBER_OF_RECORDS)<20?$first_record + NUMBER_OF_RECORDS:20;
+    $next = $common.$next;
 
-    if(count($_GET) > 0 && strlen($name_error)==0 && strlen($email_error)==0 && strlen($message_error)==0){
-        if(isset($_GET['page']) == "redirect"){
-            echo $redirect_message . "<hr>";
-        }
-    }
-?>
-
-<html>
-    <head>
-        <title> contact form </title>
-        <style>
-            .error{
-                color: red;
-            }
-        </style>
-    </head>
-
-    <body>
-        <h3> Contact Form </h3>
-        <div id="after_submit">
+    $prev = ($first_record-NUMBER_OF_RECORDS)>= 5?$first_record-NUMBER_OF_RECORDS:5;
+    $prev = $common.$prev;
+    $columns = array("id,product_name");
+    $glasses = $items->get_data($columns,$first_record);
+    echo"<table>
+            <thead>
+                <tr>
+                    <th>Item ID</th>
+                    <th>Name</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>";
+    foreach ($glasses as $glass) {
+        foreach ($glass as $item) {
+            echo"
             
-        </div>
-        <form id="contact_form" action="index.php?page=redirect" method="POST" enctype="multipart/form-data">
+                <tr>
+                    <td>$item[0]</td>
+                    <td>$item[1]</td>
+                    <td><a href='views/details.php?view=details.php&id=$item[0]'>more</a></td>
+                </tr>";
+        }      
+    }
 
-            <div class="row">
-                <label class="required" for="name">Your name:</label><br />
-                <input id="name" class="input" name="name" type="text" value="<?php echo $name ?>" size="30" /><br />
-                <p class="error"><?php echo $name_error;?></p>
+    echo"</tbody>
+        </table>";
 
-            </div>
-            <div class="row">
-                <label class="required" for="email">Your email:</label><br />
-                <input id="email" class="input" name="email" type="text" value="<?php echo $email ?>" size="30" /><br />
-                <p class="error"><?php echo $email_error;?></p>
 
-            </div>
-            <div class="row">
-                <label class="required" for="message">Your message:</label><br />
-                <textarea id="message" class="input" name="message" rows="7" cols="30"><?php echo $message ?></textarea><br />
-                <p class="error"><?php echo $message_error;?></p>
+    echo "<br> <a href='$prev'>Previous</a> | <a href='$next'>Next</a>";
 
-            </div>
+    if ($page === "details")
+        require_once("details.php");
+    else
+        require_once("index.php");
 
-            <input id="submit" name="submit" type="submit" value="Send email" />
-            <input id="clear" name="clear" type="reset" value="clear form" />
-
-        </form>
-    </body>
-
-</html>
+   $items->disconnect();
